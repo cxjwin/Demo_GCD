@@ -19,6 +19,7 @@ enum GCDType: String {
   case Timer = "Timer"
   case MonitoredDirectory = "MonitoredDirectory"
   case WatchProcess = "WatchProcess"
+  case IOReadWrite = "IOReadWrite"
 }
 
 func demoAsync() {
@@ -40,7 +41,7 @@ func demoSyncQueue() {
   }
 }
 
-let asyncQueue = DispatchQueue(label: "demo.async_queue", qos: .default, attributes: .concurrent, autoreleaseFrequency: .inherit, target: nil)
+let asyncQueue = DispatchQueue(label: "demo.async_queue", qos: .default, attributes: .concurrent)
 func demoAsyncQueue() {
   asyncQueue.async {
     print("hello world")
@@ -125,7 +126,8 @@ func demoTimer() {
 }
 
 func demoMonitoredDirectory() {
-  let fileURL = URL(fileURLWithPath: ""/*file path string*/)
+  // 这里是我桌面的文件夹,大家测试的时候可以指定自己的文件夹
+  let fileURL = URL(fileURLWithPath: "/Users/cxjwin/Desktop/Docs"/*file path string*/)
   let monitoredDirectoryFileDescriptor = open(fileURL.path, O_EVTONLY)
   let directoryMonitorSource = DispatchSource.makeFileSystemObjectSource(fileDescriptor: monitoredDirectoryFileDescriptor, eventMask: .write)
 
@@ -154,7 +156,29 @@ func demoWatchProcess() {
   }
 }
 
-let type = GCDType.WatchProcess
+func demoIORead() {
+  // 这里是我桌面的文件,大家测试的时候可以指定自己的文件
+  let fileURL = URL(fileURLWithPath: "/Users/cxjwin/Desktop/duty.md"/*file path string*/)
+  let fileDescriptor = open(fileURL.path, O_RDWR)
+  DispatchIO.read(fromFileDescriptor: fileDescriptor, maxLength: -1, runningHandlerOn: asyncQueue) {
+    (data, num) -> Void in
+    print("thread : \(Thread.current), data length : \(data.count), return value : \(num)")
+
+    demoIOWrite(data: data)
+  }
+}
+
+func demoIOWrite(data: DispatchData) {
+  // 这里是我桌面的文件(文件必须先存在,这里创建一个空文件),大家测试的时候可以指定自己的文件
+  let fileURL = URL(fileURLWithPath: "/Users/cxjwin/Desktop/hello.md"/*file path string*/)
+  let fileDescriptor = open(fileURL.path, O_RDWR)
+  DispatchIO.write(toFileDescriptor: fileDescriptor, data: data, runningHandlerOn: asyncQueue) {
+    (data, num) -> Void in
+    print("thread : \(Thread.current), data length : \(data), return value : \(num)")
+  }
+}
+
+let type = GCDType.IOReadWrite
 switch type {
 case .Async:
   demoAsync()
@@ -174,6 +198,8 @@ case .MonitoredDirectory:
   demoMonitoredDirectory()
 case .WatchProcess:
   demoWatchProcess()
+case .IOReadWrite:
+  demoIORead()
 }
 
 // run forever

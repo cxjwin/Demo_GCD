@@ -19,7 +19,7 @@ enum GCDType: String {
   case Timer = "Timer"
   case MonitoredDirectory = "MonitoredDirectory"
   case WatchProcess = "WatchProcess"
-  case IOReadWrite = "IOReadWrite"
+  case IOReadWrite = "IOReadWrite" 
 }
 
 func demoAsync() {
